@@ -12,9 +12,9 @@ const DUST_DECIMALS = 9
 const BONK = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"
 const BONK_DECIMALS = 5
 
-const HELIUS_RPC = "https://rpc.helius.xyz/?api-key=e9c0c8f2-9e71-4190-9f3a-b41eeff4a3c4"
-const HELIUS_KEY = "e9c0c8f2-9e71-4190-9f3a-b41eeff4a3c4"
-const ALCHEMY_RPC = "https://solana-mainnet.g.alchemy.com/v2/_a7JrYMcKhlUiLbwz3cP50l4ak-zwyxC"
+const HELIUS_RPC = process.env.REACT_APP_HELIUS_RPC
+const HELIUS_KEY = process.env.REACT_APP_HELIUS_KEY
+const ALCHEMY_RPC = process.env.REACT_APP_ALCHEMY_RPC
 
 function dustAmountToDecimals(amount) {
   return (amount / Math.pow(10, DUST_DECIMALS))
