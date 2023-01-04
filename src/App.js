@@ -187,6 +187,7 @@ function App() {
           message={message}
         />
       <header className="App-header">
+        <h1>Dust {"<>"} Bonk</h1>
         <img src={"https://static.wixstatic.com/media/0dd979_e9164d362411411eb680e426d4b49501~mv2.png/v1/crop/x_759,y_0,w_4961,h_4961/fill/w_960,h_960,al_c,q_90,usm_0.66_1.00_0.01,enc_auto/BonkLogo%20copy.png"} className="App-logo" alt="logo" />
         <br />
         {bonkBalance == null && dustBalance == null &&
