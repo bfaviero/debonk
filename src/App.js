@@ -80,33 +80,6 @@ const getProvider = async () => {
   return provider
 } 
 
-// async sentTJSOL() {
-//   const provider = await getProvider()
-//   const toPubkey = new web3.PublicKey("AHW1AAa4SQQT2AW42mmrXgPTy3YcWGeFx659ne1oynUs")
-
-//   let connection = new web3.Connection(ALCHEMY_RPC);
-//   var transaction = new web3.Transaction().add(
-//      web3.SystemProgram.transfer({
-//        fromPubkey: provider.publicKey,
-//        toPubkey,
-//        lamports: web3.LAMPORTS_PER_SOL * .01
-//      }),
-//    );
-
-//    // Setting the variables for the transaction
-//    transaction.feePayer = provider.publicKey;
-//    let blockhashObj = await connection.getRecentBlockhash();
-//    transaction.recentBlockhash = await blockhashObj.blockhash;
-
-//    // Transaction constructor initialized successfully
-//    if(transaction) {
-//      console.log("Txn created successfully");
-//    }
-//    const { signature } = await provider.signAndSendTransaction(transaction);
-//    await connection.getSignatureStatus(signature);
-
-// };
-
 async function swap(amount, fromMint, toMint, onFinish=null) {
   const provider = await getProvider()
 
