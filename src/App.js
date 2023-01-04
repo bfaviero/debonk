@@ -1,3 +1,8 @@
+import { CircularProgress, Tooltip, IconButton } from '@mui/material';
+import InfoIcon from '@mui/icons-material/Info';
+import Snackbar from '@mui/material/Snackbar';
+
+
 import axios from 'axios';
 import logo from './logo.svg';
 import './App.css';
@@ -33,24 +38,46 @@ const getBalance = async (provider, mint) => {
   return token_data?.amount || 0
 }
 
-
-const getProvider = async () => {
+const getProviderObject = async () => {
   if ('phantom' in window) {
     const provider = window.phantom?.solana;
 
     if (provider?.isPhantom) {
-      try {
-          const resp = await provider.connect();
-          console.log(resp.publicKey.toString());
-          // 26qv4GCcx98RihuK3c4T6ozB3J7L6VwCuFVc7Ta2A3Uo 
-      } catch (err) {
-          // { code: 4001, message: 'User rejected the request.' }
-      }
       return provider;
     }
   } 
-  window.alert("No Phantom")
+  console.log("No Phantom")
   return null
+} 
+
+async function connect(provider) {
+  try {
+      const resp = await provider.connect();
+      console.log(resp.publicKey.toString());
+      // 26qv4GCcx98RihuK3c4T6ozB3J7L6VwCuFVc7Ta2A3Uo 
+  } catch (err) {
+      // { code: 4001, message: 'User rejected the request.' }
+  }
+}
+
+async function checkEagerConnection(provider) {
+  const result = await provider.connect({ onlyIfTrusted: true })
+  .then(({ publicKey }) => {
+      return true
+  })
+  .catch(() => {
+      return false
+  })
+  return result
+}
+
+const getProvider = async () => {
+  const provider = await getProviderObject()
+  const hasEagerConnection = await checkEagerConnection(provider)
+  if (!hasEagerConnection) {
+    await connect(provider)
+  }
+  return provider
 } 
 
 // async sentTJSOL() {
@@ -80,7 +107,7 @@ const getProvider = async () => {
 
 // };
 
-async function swap(amount, fromMint, toMint) {
+async function swap(amount, fromMint, toMint, onFinish=null) {
   const provider = await getProvider()
 
   const data = await fetch(`https://quote-api.jup.ag/v3/quote?inputMint=${fromMint}&outputMint=${toMint}&amount=${amount}&slippageBps=50`)
@@ -108,7 +135,9 @@ async function swap(amount, fromMint, toMint) {
   const { signature } = await provider.signAndSendTransaction(transaction);
   console.log("Submitting transaction")
   await connection.getSignatureStatus(signature);
-  console.log("done!")
+  if (onFinish) {
+    onFinish(signature)
+  }
 }
 
 
@@ -116,6 +145,18 @@ function App() {
 
   const [dustBalance, setDustBalance] = useState(null);
   const [bonkBalance, setBonkBalance] = useState(null);
+  const [signature, setSignature] = useState(null)
+
+  const [showingTransactionToast, setShowingTransactionToast] = useState(false);
+
+  const finishedSwapHandler = (signature) => {
+    setSignature(signature)
+    setShowingTransactionToast(true)
+  }
+
+  const hideToast = () => {
+    setShowingTransactionToast(false)
+  }
 
   useEffect(() => {
     const setBalances = async () => {
@@ -128,31 +169,71 @@ function App() {
     setBalances()
   }, [])
 
+  const transactionURL = signature && `https://solscan.io/tx/${signature}`
+  const message = <p>
+    Transaction submitted! {" "}
+    {signature &&
+      <a href={transactionURL} target="_blank" style={{color: "white"}}>
+        Click here to see it.
+      </a>
+    }
+  </p>
   return (
     <div className="App">
+        <Snackbar
+          open={showingTransactionToast}
+          autoHideDuration={4000}
+          onClose={hideToast}
+          message={message}
+        />
       <header className="App-header">
         <img src={"https://static.wixstatic.com/media/0dd979_e9164d362411411eb680e426d4b49501~mv2.png/v1/crop/x_759,y_0,w_4961,h_4961/fill/w_960,h_960,al_c,q_90,usm_0.66_1.00_0.01,enc_auto/BonkLogo%20copy.png"} className="App-logo" alt="logo" />
         <br />
+        {bonkBalance == null && dustBalance == null &&
+          <p>Loading <CircularProgress /> </p>
+        }
         {bonkBalance != null &&
-          <span>You have {bonkAmountToDecimals(bonkBalance)} $BONK</span>
+          <span>
+            You have {bonkAmountToDecimals(bonkBalance)} $BONK
+            <Tooltip sx={{ color: "white", fontSize: 10 }} title="Balances refresh every 4 seconds" placement="right-start">
+              <IconButton>
+                <InfoIcon />
+              </IconButton>
+            </Tooltip>
+          </span>
         }
         {dustBalance != null &&
-          <span>You have {bonkAmountToDecimals(dustBalance)} DUST</span>
+          <span>
+            You have {dustAmountToDecimals(dustBalance)} DUST
+            <Tooltip sx={{ color: "white", fontSize: 10 }} title="Balances refresh every 4 seconds" placement="right-start">
+              <IconButton>
+                <InfoIcon />
+              </IconButton>
+            </Tooltip>
+          </span>
         }
         <br/>
-        <a 
-          onClick={() => swap(dustBalance, DUST, BONK)} 
-          style={{cursor: "pointer", textDecoration: "underline"}}
-        >
-          DUST -> BONK
-        </a>
-        <br/>
-        <a 
-          onClick={() => swap(dustBalance, BONK, DUST)} 
-          style={{cursor: "pointer", textDecoration: "underline"}}
-        >
-          BONK -> DUST
-        </a>
+
+        {bonkBalance != null && dustBalance != null && <>
+          {dustBalance > 0 &&
+            <a 
+              onClick={() => swap(dustBalance, DUST, BONK, finishedSwapHandler)} 
+              style={{cursor: "pointer", textDecoration: "underline"}}
+            >
+              Swap $DUST -> $BONK
+            </a>
+          }
+          <br/>
+          {bonkBalance > 0 &&
+            <a 
+              onClick={() => swap(bonkBalance, BONK, DUST, finishedSwapHandler)} 
+              style={{cursor: "pointer", textDecoration: "underline"}}
+            >
+              Swap $BONK -> $DUST
+            </a>
+          }
+        </>
+      }
       </header>
     </div>
   );
